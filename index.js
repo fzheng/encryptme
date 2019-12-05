@@ -25,24 +25,51 @@ const argv = require('yargs') // eslint-disable-line
   .version(false)
   .argv;
 
+/**
+ * Entry function
+ * @param {Object} argv
+ * @param {string=} argv.e
+ * @param {string=} argv.d
+ * @param {string} argv.o
+ */
 function main(argv) {
+  // crypto constants
+  const HASH_ALGORITHM = 'sha256';
+  const ENCRYPT_ALGORITHM = 'aes-256-ctr';
+  const KEY_LEN = 32;
+  const IV_LEN = 16;
+
+  /**
+   * Exit and clean up
+   * @param {Object} err
+   */
   const exit = (err) => {
     if (err) console.error(err); // eslint-disable-line no-console
     process.exit(err ? 1 : 0);
   };
 
+  /**
+   * Method to encrypt
+   * @param {Buffer} buffer
+   * @returns {Buffer}
+   */
   const encrypt = (buffer) => {
-    const key = crypto.createHash('sha256').update(String(process.env.MASTER_KEY)).digest('base64').substr(0, 32);
-    const iv = crypto.randomBytes(16); // Create an initialization vector
-    const cipher = crypto.createCipheriv(process.env.ALGORITHM, key, iv);
+    const key = crypto.createHash(HASH_ALGORITHM).update(String(process.env.MASTER_KEY)).digest('base64').substr(0, KEY_LEN);
+    const iv = crypto.randomBytes(IV_LEN);
+    const cipher = crypto.createCipheriv(ENCRYPT_ALGORITHM, key, iv);
     return Buffer.concat([iv, cipher.update(buffer), cipher.final()]);
   };
 
+  /**
+   * Method to decrypt
+   * @param {Buffer} encrypted
+   * @returns {Buffer}
+   */
   const decrypt = (encrypted) => {
-    const key = crypto.createHash('sha256').update(String(process.env.MASTER_KEY)).digest('base64').substr(0, 32);
-    const iv = encrypted.slice(0, 16); // Get the iv, the first 16 bytes
-    const decipher = crypto.createDecipheriv(process.env.ALGORITHM, key, iv);
-    return Buffer.concat([decipher.update(encrypted.slice(16)), decipher.final()]);
+    const key = crypto.createHash(HASH_ALGORITHM).update(String(process.env.MASTER_KEY)).digest('base64').substr(0, KEY_LEN);
+    const iv = encrypted.slice(0, IV_LEN);
+    const decipher = crypto.createDecipheriv(ENCRYPT_ALGORITHM, key, iv);
+    return Buffer.concat([decipher.update(encrypted.slice(IV_LEN)), decipher.final()]);
   };
 
   const method = argv.e ? encrypt : decrypt;
