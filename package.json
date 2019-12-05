@@ -1,0 +1,30 @@
+{
+  "name": "encryptme",
+  "version": "1.0.0",
+  "description": "Command tool to encrypt and decrypt files",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fzheng/encryptme.git"
+  },
+  "author": "fzheng",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fzheng/encryptme/issues"
+  },
+  "homepage": "https://github.com/fzheng/encryptme#readme",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "lodash": "^4.17.15",
+    "yargs": "^15.0.2"
+  },
+  "devDependencies": {
+    "eslint": "^6.7.2",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-security": "^1.4.0"
+  }
+}
