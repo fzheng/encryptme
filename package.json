@@ -1,6 +1,6 @@
 {
   "name": "encryptme",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Command tool to encrypt and decrypt files",
   "main": "index.js",
   "scripts": {
@@ -19,12 +19,12 @@
   "dependencies": {
     "dotenv": "^8.2.0",
     "lodash": "^4.17.15",
-    "yargs": "^15.0.2"
+    "yargs": "^15.1.0"
   },
   "devDependencies": {
-    "eslint": "^6.7.2",
+    "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-import": "^2.20.0",
     "eslint-plugin-security": "^1.4.0"
   }
 }

@@ -5,6 +5,8 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 const fs = require('fs');
 const crypto = require('crypto');
+const zlib = require('zlib');
+const { Transform } = require('stream');
 
 require('dotenv').config();
 
@@ -25,14 +27,31 @@ const argv = require('yargs') // eslint-disable-line
   .version(false)
   .argv;
 
+class AppendIv extends Transform {
+  constructor(iv, opts) {
+    super(opts);
+    this.iv = iv;
+    this.appended = false;
+  }
+
+  _transform(chunk, encoding, cb) {
+    if (!this.appended) {
+      this.push(this.iv);
+      this.appended = true;
+    }
+    this.push(chunk);
+    cb();
+  }
+}
+
 /**
  * Entry function
- * @param {Object} argv
- * @param {string=} argv.e
- * @param {string=} argv.d
- * @param {string} argv.o
+ * @param {Object} cmd
+ * @param {string=} cmd.e
+ * @param {string=} cmd.d
+ * @param {string} cmd.o
  */
-function main(argv) {
+function main(cmd) {
   // crypto constants
   const HASH_ALGORITHM = 'sha256';
   const ENCRYPT_ALGORITHM = 'aes-256-ctr';
@@ -40,44 +59,42 @@ function main(argv) {
   const IV_LEN = 16;
 
   /**
-   * Exit and clean up
-   * @param {Object} err
-   */
-  const exit = (err) => {
-    if (err) console.error(err); // eslint-disable-line no-console
-    process.exit(err ? 1 : 0);
-  };
-
-  /**
    * Method to encrypt
-   * @param {Buffer} buffer
-   * @returns {Buffer}
    */
-  const encrypt = (buffer) => {
+  const encrypt = (iv) => {
     const key = crypto.createHash(HASH_ALGORITHM).update(String(process.env.MASTER_KEY)).digest('base64').substr(0, KEY_LEN);
-    const iv = crypto.randomBytes(IV_LEN);
-    const cipher = crypto.createCipheriv(ENCRYPT_ALGORITHM, key, iv);
-    return Buffer.concat([iv, cipher.update(buffer), cipher.final()]);
+    return crypto.createCipheriv(ENCRYPT_ALGORITHM, key, iv);
   };
 
   /**
    * Method to decrypt
-   * @param {Buffer} encrypted
-   * @returns {Buffer}
    */
-  const decrypt = (encrypted) => {
+  const decrypt = (iv) => {
     const key = crypto.createHash(HASH_ALGORITHM).update(String(process.env.MASTER_KEY)).digest('base64').substr(0, KEY_LEN);
-    const iv = encrypted.slice(0, IV_LEN);
-    const decipher = crypto.createDecipheriv(ENCRYPT_ALGORITHM, key, iv);
-    return Buffer.concat([decipher.update(encrypted.slice(IV_LEN)), decipher.final()]);
+    return crypto.createDecipheriv(ENCRYPT_ALGORITHM, key, iv);
   };
 
-  const method = argv.e ? encrypt : decrypt;
-  const input = argv.e || argv.d;
-  fs.readFile(input, (err, data) => {
-    if (err) return exit(err);
-    return fs.writeFile(argv.o, method(data), exit);
-  });
+  const isEncrypt = !!cmd.e;
+  if (isEncrypt) {
+    const iv = crypto.randomBytes(IV_LEN);
+    fs.createReadStream(cmd.e)
+      .pipe(zlib.createGzip())
+      .pipe(encrypt(iv))
+      .pipe(new AppendIv(iv))
+      .pipe(fs.createWriteStream(cmd.o));
+  } else {
+    let iv;
+    const getIv = fs.createReadStream(cmd.d, { end: IV_LEN - 1 });
+    getIv.on('data', (chunk) => {
+      iv = chunk;
+    });
+    getIv.on('close', () => {
+      fs.createReadStream(cmd.d, { start: IV_LEN })
+        .pipe(decrypt(iv))
+        .pipe(zlib.createUnzip())
+        .pipe(fs.createWriteStream(cmd.o));
+    });
+  }
 }
 
 if (require.main !== module) {
@@ -85,4 +102,3 @@ if (require.main !== module) {
 } else {
   main(argv);
 }
-
