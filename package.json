@@ -18,7 +18,7 @@
   "homepage": "https://github.com/fzheng/encryptme#readme",
   "dependencies": {
     "dotenv": "^8.2.0",
-    "lodash": "^4.17.19",
+    "lodash": "^4.17.21",
     "yargs": "^15.0.2"
   },
   "devDependencies": {
